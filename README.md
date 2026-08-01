@@ -29,4 +29,3 @@ python3 src/prototype.py
 This prototype demonstrates the **Adaptive Computation Time (ACT)** mechanism, showing how the system dynamically allocates compute for simple vs. complex queries.
 
 ---
-*Created by Manus AI as part of a visionary project to build a truly emergent, self-aware cognitive system.*
