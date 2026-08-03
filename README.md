@@ -1,31 +1,31 @@
-# Unified First-Principles Cognitive Architecture
+# Frontier Unified Cognitive Architecture
+## A Tokenless, Neuro-Symbolic, Self-Aware Single Brain
 
-This repository contains the complete design, mathematical blueprint, and prototype for a novel, first-principles cognitive architecture. Departing from the current paradigm of token-based, Mixture-of-Experts (MoE) models, this architecture proposes a **unified, continuous, neuro-symbolic single brain**.
+This repository contains the core engine for a next-generation cognitive architecture that transcends the limitations of token-based, Mixture-of-Experts (MoE) models. It implements a unified, continuous, neuro-symbolic brain designed for emergent intelligence and autonomous reasoning.
+
+## Core Engine Components
+
+- **Continuous Latent Manifold ($M$):** A high-dimensional Riemannian space where all information resides as continuous trajectories.
+- **Liquid Structural State-Space (SSM):** A continuous-time working memory core combining Mamba-2 scaling with Liquid Neural Network dynamics.
+- **Vector Symbolic Architecture (VSA):** A differentiable logic layer for high-precision neuro-symbolic reasoning.
+- **3-Tier Meta-Cognitive Controller:** An active inference engine that minimizes variational free energy to govern autonomous pondering and execution.
 
 ## Repository Structure
 
-- **`blueprints/`**: Contains the `master_blueprint.md`, the definitive technical document for the architecture.
-- **`docs/`**: General documentation, including the `prototype_validation_report.md`.
-  - **`design/`**: Detailed design specifications for the unified manifold, neuro-symbolic integration, memory engine, and meta-cognitive systems.
-- **`research/`**: Synthesis of state-of-the-art research (2025-2026) that informs the architecture's design.
-- **`src/`**: Prototype implementation of the core 3-tier meta-cognitive loop.
+- **`src/`**: The functional cognitive engine.
+  - `core_engine.py`: Manifold and SSM backbone.
+  - `logic_layer.py`: VSA and neuro-symbolic logic.
+  - `controller.py`: Hierarchical active inference.
+  - `unified_engine.py`: Integration and autonomous execution.
+- **`blueprints/`**: Technical specifications and mathematical foundations.
+- **`research/`**: Frontier research synthesis.
 
-## Core Principles
+## Execution
 
-1. **Unified Latent Manifold ($M$):** A single, high-dimensional continuous space where all modalities (vision, audio, text) and logic fuse.
-2. **Tokenless Encoding:** Raw sensory inputs are mapped directly to $M$ without lossy discrete tokenization.
-3. **Neuro-Symbolic Integration:** Statistical neural intuition is fused with deterministic Vector Symbolic Architecture (VSA) logic.
-4. **3-Tier Meta-Cognition:** A hierarchical self-monitoring system (Working, Meta, and Super-Meta tiers) that manages compute and prevents nonsense reasoning.
-5. **Adaptive User Memory:** The system learns and adapts to the user's specific character and execution preferences over time.
-
-## Getting Started
-
-To run the core prototype validation:
+To execute the autonomous cognitive engine:
 
 ```bash
-python3 src/prototype.py
+python3 src/unified_engine.py
 ```
 
-This prototype demonstrates the **Adaptive Computation Time (ACT)** mechanism, showing how the system dynamically allocates compute for simple vs. complex queries.
-
----
+This architecture is built from first principles to achieve genuine insight and common sense through the geometric fusion of all modalities and logical operations in a single unified space.

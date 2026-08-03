@@ -2,75 +2,65 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-class VSALogic(nn.Module):
+class FrontierVSALogic(nn.Module):
     """
-    Vector Symbolic Architecture (VSA) Logic Layer.
-    Implements binding, bundling, and permutation for neuro-symbolic reasoning.
+    Frontier Vector Symbolic Architecture (VSA).
+    Implements high-precision holographic binding and associative retrieval.
     """
-    def __init__(self, dim=2048):
+    def __init__(self, dim=4096):
         super().__init__()
         self.dim = dim
         
     def bind(self, x, y):
-        """
-        Binding operation (⊗) via Circular Convolution.
-        Associates two concepts into a new, unique vector.
-        """
-        x_fft = torch.fft.fft(x)
-        y_fft = torch.fft.fft(y)
-        return torch.fft.ifft(x_fft * y_fft).real
+        """Binding (⊗) via Circular Convolution."""
+        return torch.fft.ifft(torch.fft.fft(x) * torch.fft.fft(y)).real
+
+    def unbind(self, bound, x):
+        """Unbinding (⊘) to retrieve y from (x ⊗ y)."""
+        # Circular correlation is the inverse of circular convolution
+        x_inv = torch.roll(torch.flip(x, dims=[-1]), shifts=1, dims=[-1])
+        return self.bind(bound, x_inv)
 
     def bundle(self, vectors):
-        """
-        Bundling operation (+) via superposition.
-        Creates a set/category representation.
-        """
-        stacked = torch.stack(vectors, dim=0)
-        bundled = torch.sum(stacked, dim=0)
-        return F.normalize(bundled, p=2, dim=-1)
+        """Bundling (+) via superposition."""
+        return F.normalize(torch.sum(torch.stack(vectors), dim=0), p=2, dim=-1)
 
-    def permute(self, x, shift=1):
-        """
-        Permutation operation (ρ) for sequential structure.
-        """
-        return torch.roll(x, shifts=shift, dims=-1)
-
-class RenormalizationLayer(nn.Module):
+class AssociativeMemory(nn.Module):
     """
-    Recursive Renormalization Group (RG) Layer.
-    Prevents vector drift and maintains logical stability.
+    Hyperdimensional Associative Memory matrix.
+    Stores and retrieves patterns in superposition.
     """
-    def __init__(self, dim=2048):
+    def __init__(self, dim=4096):
         super().__init__()
         self.dim = dim
+        self.register_buffer("memory_matrix", torch.zeros(dim, dim))
+        
+    def store(self, key, value):
+        """Hebbian-style storage: M += v * k^T"""
+        update = torch.matmul(value.unsqueeze(-1), key.unsqueeze(0))
+        self.memory_matrix += update
+        
+    def retrieve(self, key):
+        """Retrieval: v = M * k"""
+        return torch.matmul(self.memory_matrix, key)
+
+class RenormalizationGroup(nn.Module):
+    """
+    Recursive Renormalization Group (RG) Layer.
+    Ensures topological stability of the semantic manifold.
+    """
+    def __init__(self, dim=4096):
+        super().__init__()
         self.refiner = nn.Sequential(
-            nn.Linear(dim, dim),
-            nn.LayerNorm(dim),
-            nn.Tanh()
+            nn.Linear(dim, dim * 2),
+            nn.GELU(),
+            nn.Linear(dim * 2, dim),
+            nn.LayerNorm(dim)
         )
         
     def forward(self, x):
-        # Project back onto the semantic manifold
-        refined = self.refiner(x)
-        return F.normalize(x + refined, p=2, dim=-1)
-
-class DifferentiableLogicGates(nn.Module):
-    """
-    Differentiable logical gates (AND, OR, NOT).
-    """
-    def __init__(self, dim=2048):
-        super().__init__()
-        self.dim = dim
-        self.vsa = VSALogic(dim)
-        
-    def logical_and(self, x, y):
-        # In VSA, AND is often represented by binding
-        return self.vsa.bind(x, y)
-        
-    def logical_or(self, x, y):
-        # In VSA, OR is represented by bundling
-        return self.vsa.bundle([x, y])
-        
-    def logical_not(self, x):
-        # In VSA, NOT is often an orthogonal transformation
-        return -x
+        # Recursive refinement
+        res = x
+        for _ in range(2):
+            res = F.normalize(res + self.refiner(res), p=2, dim=-1)
+        return res

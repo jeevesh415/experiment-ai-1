@@ -1,89 +1,83 @@
 import torch
 import torch.nn as nn
-from core_engine import UnifiedManifold, LiquidSSMLayer, ContinuousEncoder
-from logic_layer import VSALogic, RenormalizationLayer
-from controller import MetaCognitiveController
+from core_engine import UnifiedManifold, FrontierLiquidSSM, ContinuousPatchEncoder
+from logic_layer import FrontierVSALogic, AssociativeMemory, RenormalizationGroup
+from controller import FrontierController
 
-class SingleBrainEngine(nn.Module):
+class FrontierCognitiveEngine(nn.Module):
     """
-    The Unified First-Principles Cognitive Engine.
-    Fuses all modalities into a single continuous latent manifold.
+    The Frontier Unified Cognitive Engine.
+    A single-brain architecture for autonomous reasoning.
     """
-    def __init__(self, dim=2048):
+    def __init__(self, dim=4096):
         super().__init__()
         self.dim = dim
         self.manifold = UnifiedManifold(dim)
-        self.encoder = ContinuousEncoder(256, dim)
-        self.working_memory = LiquidSSMLayer(dim)
-        self.logic = VSALogic(dim)
-        self.renorm = RenormalizationLayer(dim)
-        self.controller = MetaCognitiveController(dim)
+        self.encoder = ContinuousPatchEncoder(dim)
+        self.ssm = FrontierLiquidSSM(dim)
+        self.vsa = FrontierVSALogic(dim)
+        self.memory = AssociativeMemory(dim)
+        self.rg = RenormalizationGroup(dim)
+        self.controller = FrontierController(dim)
         
-        # Persistent states
+        # Internal State
         self.h = torch.zeros(1, dim)
-        self.user_profile = torch.randn(1, dim) # Simulated user character
-        self.goal = torch.zeros(1, dim)
+        self.user_latent = torch.randn(1, dim) # Persistent user character profile
 
-    def process_sensory_input(self, raw_input, modality="text"):
-        """
-        Maps raw input directly into the manifold.
-        """
-        # Simulated frequency-domain patching
-        latent = self.encoder(raw_input)
-        return self.manifold.project(latent)
+    def perceive(self, raw_input):
+        """Map sensory input into the manifold."""
+        z = self.encoder(raw_input)
+        return self.manifold.project(z)
 
-    def think(self, input_trajectory, max_ponder_steps=20):
+    def autonomous_loop(self, sensory_latent, max_ponder=50):
         """
-        The Autonomous Reasoning Loop.
-        Continuous evolution in M guided by Tier 2 and Tier 3.
+        Active Inference Pondering Loop.
+        The brain evolves in M until VFE is minimized.
         """
-        print(f"--- Starting Autonomous Pondering ---")
+        print(">>> INITIATING FRONTIER AUTONOMOUS LOOP <<<")
         
-        for step in range(max_ponder_steps):
-            # 1. Tier 1: Process input and update working memory
-            self.h = self.working_memory(input_trajectory, self.h)
+        for t in range(max_ponder):
+            # 1. State Update (Liquid SSM)
+            y, self.h = self.ssm(sensory_latent, self.h)
             self.h = self.manifold.project(self.h)
             
-            # 2. Neuro-Symbolic Renormalization
-            self.h = self.renorm(self.h)
+            # 2. Neuro-Symbolic Refinement (RG + VSA)
+            self.h = self.rg(self.h)
             
-            # 3. Tier 2: Monitor confidence
-            confidence = self.controller.tier2_monitor(self.h)
+            # 3. Active Inference (VFE)
+            vfe = self.controller.compute_vfe(self.h, sensory_latent)
+            decayed_vfe = self.controller.decay_energy(vfe, t)
             
-            # 4. Tier 3: Compute Energy Alignment
-            energy = self.controller.compute_energy(self.h, self.user_profile, self.goal)
-            aligned_energy = self.controller.tier3_align(energy, step)
+            # 4. Meta-Monitoring (Confidence)
+            conf = self.controller.monitor(self.h)
             
-            print(f"Step {step+1}: Energy={aligned_energy.item():.4f}, Confidence={confidence.item():.4f}")
+            if t % 5 == 0:
+                print(f"[Step {t}] VFE: {decayed_vfe.item():.6f} | Conf: {conf.item():.4f}")
             
-            # Halting condition: Low energy OR High confidence
-            if confidence.item() > 0.95 or aligned_energy.item() < 0.05:
-                print(f"--- Brain Reached Insight at Step {step+1} ---")
+            # Emergent Halting: VFE below threshold or high confidence
+            if decayed_vfe.item() < 0.001 or conf.item() > 0.98:
+                print(f">>> INSIGHT EMERGED AT STEP {t} <<<")
                 break
                 
         return self.h
 
-def run_demonstration():
-    engine = SingleBrainEngine(dim=2048)
+def execute_frontier():
+    # Initialize Engine at 4096-dim Frontier scale
+    engine = FrontierCognitiveEngine(dim=4096)
     
-    # 1. Simulate Cross-Modal Input
-    # A vector representing 'Vision: Dog' + 'Audio: Bark'
-    vision_input = torch.randn(1, 256)
-    audio_input = torch.randn(1, 256)
+    # Simulate high-entropy multimodal input
+    # (e.g. Fused Vision/Audio/Text frequency components)
+    raw_input = torch.randn(1, 512)
     
-    # Encode into the unified manifold
-    z_vision = engine.process_sensory_input(vision_input, modality="vision")
-    z_audio = engine.process_sensory_input(audio_input, modality="audio")
+    # Perception
+    z = engine.perceive(raw_input)
     
-    # FUSE into a single brain state via VSA Bundling
-    fused_state = engine.logic.bundle([z_vision, z_audio])
+    # Autonomous Reasoning
+    final_state = engine.autonomous_loop(z)
     
-    # 2. Start Thinking Loop
-    final_insight = engine.think(fused_state)
-    
-    print("\nFinal Latent State (Unified Manifold Point):")
-    print(final_insight[:, :10]) # Print first 10 dims
-    print("...")
+    print("\n>>> EXECUTION COMPLETE <<<")
+    print(f"Final State Norm: {torch.norm(final_state).item():.4f}")
+    print(f"Manifold Point (first 5 dims): {final_state[0, :5].detach().numpy()}")
 
 if __name__ == "__main__":
-    run_demonstration()
+    execute_frontier()
