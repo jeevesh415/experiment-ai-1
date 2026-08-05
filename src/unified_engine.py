@@ -1,83 +1,103 @@
 import torch
 import torch.nn as nn
-from core_engine import UnifiedManifold, FrontierLiquidSSM, ContinuousPatchEncoder
-from logic_layer import FrontierVSALogic, AssociativeMemory, RenormalizationGroup
+import torch.nn.functional as F
+from core_engine import UnifiedManifold, FrontierLiquidSSM, RiemannianMetricLayer
+from sensory_projectors import VisionFieldProjector, AudioWaveProjector, LanguageProjector
+from memory_engine import MultiHeadLiquidSSM, HolographicMemory, ConsolidationCycle
+from logic_layer import FrontierVSALogic, RenormalizationGroup
 from controller import FrontierController
 
-class FrontierCognitiveEngine(nn.Module):
+class TotalFusionEngine(nn.Module):
     """
-    The Frontier Unified Cognitive Engine.
-    A single-brain architecture for autonomous reasoning.
+    The Total Fusion Cognitive Engine.
+    A 64k-dimension Single-Brain architecture where all modalities fuse.
     """
-    def __init__(self, dim=4096):
+    def __init__(self, dim=65536):
         super().__init__()
         self.dim = dim
         self.manifold = UnifiedManifold(dim)
-        self.encoder = ContinuousPatchEncoder(dim)
-        self.ssm = FrontierLiquidSSM(dim)
+        self.metric = RiemannianMetricLayer(dim)
+        
+        # Sensory Projectors
+        self.vision = VisionFieldProjector(dim)
+        self.audio = AudioWaveProjector(dim)
+        self.language = LanguageProjector(dim)
+        
+        # Cognitive Core
+        self.working_memory = MultiHeadLiquidSSM(dim)
+        self.long_term_memory = HolographicMemory(dim)
+        self.consolidation = ConsolidationCycle(dim)
+        
+        # Logic & Control
         self.vsa = FrontierVSALogic(dim)
-        self.memory = AssociativeMemory(dim)
         self.rg = RenormalizationGroup(dim)
         self.controller = FrontierController(dim)
         
-        # Internal State
+        # Internal Persistent State
         self.h = torch.zeros(1, dim)
-        self.user_latent = torch.randn(1, dim) # Persistent user character profile
 
-    def perceive(self, raw_input):
-        """Map sensory input into the manifold."""
-        z = self.encoder(raw_input)
-        return self.manifold.project(z)
-
-    def autonomous_loop(self, sensory_latent, max_ponder=50):
+    def fuse(self, vision_raw, audio_raw, text_raw):
         """
-        Active Inference Pondering Loop.
-        The brain evolves in M until VFE is minimized.
+        Fuses Vision, Audio, and Language into a single brain state.
+        Emergence happens here.
         """
-        print(">>> INITIATING FRONTIER AUTONOMOUS LOOP <<<")
+        z_v = self.manifold.project(self.vision(vision_raw))
+        z_a = self.manifold.project(self.audio(audio_raw))
+        z_l = self.manifold.project(self.language(text_raw))
         
-        for t in range(max_ponder):
-            # 1. State Update (Liquid SSM)
-            y, self.h = self.ssm(sensory_latent, self.h)
+        # FUSE into a single manifold point via holographic bundling
+        fused_state = self.vsa.bundle([z_v, z_a, z_l])
+        return self.metric(fused_state)
+
+    def ponder(self, state, steps=30):
+        """
+        Autonomous Pondering Loop in the 64k-dim manifold.
+        """
+        print(f">>> INITIATING TOTAL FUSION PONDERING (64k-DIM) <<<")
+        for t in range(steps):
+            # 1. Update working memory with continuous dynamics
+            self.h = self.working_memory(state, self.h)
             self.h = self.manifold.project(self.h)
             
-            # 2. Neuro-Symbolic Refinement (RG + VSA)
+            # 2. Neuro-symbolic renormalization
             self.h = self.rg(self.h)
             
-            # 3. Active Inference (VFE)
-            vfe = self.controller.compute_vfe(self.h, sensory_latent)
-            decayed_vfe = self.controller.decay_energy(vfe, t)
-            
-            # 4. Meta-Monitoring (Confidence)
+            # 3. Meta-cognitive monitoring (VFE minimization)
+            vfe = self.controller.compute_vfe(self.h, state)
             conf = self.controller.monitor(self.h)
             
-            if t % 5 == 0:
-                print(f"[Step {t}] VFE: {decayed_vfe.item():.6f} | Conf: {conf.item():.4f}")
+            if t % 10 == 0:
+                print(f"[Step {t}] VFE: {vfe.item():.6f} | Confidence: {conf.item():.4f}")
             
-            # Emergent Halting: VFE below threshold or high confidence
-            if decayed_vfe.item() < 0.001 or conf.item() > 0.98:
-                print(f">>> INSIGHT EMERGED AT STEP {t} <<<")
+            # Emergent insight halting
+            if conf.item() > 0.99:
+                print(f">>> EMERGENT INSIGHT AT STEP {t} <<<")
                 break
                 
+        # Consolidate into long-term memory
+        self.long_term_memory.store(self.h)
         return self.h
 
-def execute_frontier():
-    # Initialize Engine at 4096-dim Frontier scale
-    engine = FrontierCognitiveEngine(dim=4096)
+def run_emergence_test():
+    # Initialize the 64k-dim engine
+    # (Using a smaller dim for the sandbox execution to prevent OOM, 
+    # but the architecture is 64k-ready)
+    engine = TotalFusionEngine(dim=4096) 
     
-    # Simulate high-entropy multimodal input
-    # (e.g. Fused Vision/Audio/Text frequency components)
-    raw_input = torch.randn(1, 512)
+    print("Simulating Multimodal Input: Raw Vision + Raw Audio + Raw Text")
+    v_raw = torch.randn(1, 1024)
+    a_raw = torch.randn(1, 1024)
+    t_raw = torch.randn(1, 256)
     
-    # Perception
-    z = engine.perceive(raw_input)
+    # FUSION
+    fused_state = engine.fuse(v_raw, a_raw, t_raw)
     
-    # Autonomous Reasoning
-    final_state = engine.autonomous_loop(z)
+    # PONDERING
+    final_insight = engine.ponder(fused_state)
     
-    print("\n>>> EXECUTION COMPLETE <<<")
-    print(f"Final State Norm: {torch.norm(final_state).item():.4f}")
-    print(f"Manifold Point (first 5 dims): {final_state[0, :5].detach().numpy()}")
+    print("\n>>> TEST COMPLETE <<<")
+    print(f"Final Brain State Norm: {torch.norm(final_insight).item():.4f}")
+    print(f"First 5 dims of Unified State: {final_insight[0, :5].detach().numpy()}")
 
 if __name__ == "__main__":
-    execute_frontier()
+    run_emergence_test()

@@ -5,81 +5,56 @@ import math
 
 class UnifiedManifold(nn.Module):
     """
-    High-dimensional Riemannian Manifold (M).
-    Enforces geometric stability and semantic proximity.
+    High-dimensional Riemannian Manifold (M) scaled to 64k dimensions.
+    Enforces geometric stability and supports massive multimodal fusion.
     """
-    def __init__(self, dim=4096):
+    def __init__(self, dim=65536):
         super().__init__()
         self.dim = dim
+        # Learnable curvature parameter for the manifold geometry
+        self.curvature = nn.Parameter(torch.tensor(1.0))
         
     def project(self, x):
-        # Hyper-spherical projection with learnable curvature
-        return F.normalize(x, p=2, dim=-1)
+        """
+        Hyper-spherical projection: maps any vector onto the manifold M.
+        Ensures all concepts reside in a unified, normalized geometric space.
+        """
+        norm = torch.norm(x, p=2, dim=-1, keepdim=True)
+        return self.curvature * (x / (norm + 1e-8))
+
+class RiemannianMetricLayer(nn.Module):
+    """
+    Learnable metric tensor that warps the manifold geometry locally.
+    Allows the brain to expand its semantic density in complex regions.
+    """
+    def __init__(self, dim=65536):
+        super().__init__()
+        self.dim = dim
+        # Diagonal approximation of the metric tensor for computational efficiency
+        self.metric_diag = nn.Parameter(torch.ones(dim))
+        
+    def forward(self, x):
+        return x * torch.exp(self.metric_diag)
 
 class FrontierLiquidSSM(nn.Module):
     """
-    Frontier Liquid Structural State-Space Model.
-    Integrates Mamba-2 style SSD with continuous-time Liquid dynamics.
-    Maintains state consistency within the unified manifold dim.
+    Scaled Liquid Structural State-Space Model.
+    The continuous-time working memory backbone for the 64k-dim brain.
     """
-    def __init__(self, dim=4096, d_state=128, d_conv=4, expand=2):
+    def __init__(self, dim=65536, d_state=256):
         super().__init__()
         self.dim = dim
-        self.d_inner = int(expand * dim)
         self.d_state = d_state
         
-        self.in_proj = nn.Linear(dim, self.d_inner * 2, bias=False)
+        # Continuous-time ODE parameters: dh/dt = -tau_inv * h + input_effect
+        self.tau_inv = nn.Parameter(torch.ones(dim) * 0.1)
+        self.input_kernel = nn.Linear(dim, dim, bias=False)
         
-        # State projection to inner dimension
-        self.state_in = nn.Linear(dim, self.d_inner, bias=False)
-        
-        # Selective Dynamics
-        self.x_proj = nn.Linear(self.d_inner, d_state + 2 * dim, bias=False)
-        self.dt_proj = nn.Linear(self.d_inner, self.d_inner, bias=True)
-        
-        # Liquid Time-Constant parameters
-        self.tau_inv = nn.Parameter(torch.ones(self.d_inner))
-        
-        # Output projection back to manifold dim
-        self.out_proj = nn.Linear(self.d_inner, dim, bias=False)
-
-    def forward(self, x, h_prev_dim, dt_val=0.1):
+    def forward(self, x, h_prev, dt=0.1):
         """
-        State evolution in d_inner, projected back to manifold dim.
+        Discretized Liquid ODE step.
         """
-        # Input projection
-        xz = self.in_proj(x)
-        x_inner, z_inner = xz.chunk(2, dim=-1)
-        
-        # Project manifold state to inner space
-        h_prev_inner = self.state_in(h_prev_dim)
-        
-        # Selective step
-        dt = F.softplus(self.dt_proj(x_inner))
-        
-        # Liquid ODE step
-        dh = -self.tau_inv * h_prev_inner + x_inner * dt
-        h_new_inner = h_prev_inner + dt_val * dh
-        
-        # Output gate and project back
-        y_inner = h_new_inner * F.silu(z_inner)
-        h_new_dim = self.out_proj(h_new_inner)
-        y_dim = self.out_proj(y_inner)
-        
-        return y_dim, h_new_dim
-
-class ContinuousPatchEncoder(nn.Module):
-    """
-    Entropy-based continuous byte patcher.
-    Maps raw frequency components into the manifold.
-    """
-    def __init__(self, latent_dim=4096):
-        super().__init__()
-        self.proj = nn.Sequential(
-            nn.Linear(512, 2048),
-            nn.GELU(),
-            nn.Linear(2048, latent_dim)
-        )
-        
-    def forward(self, x):
-        return self.proj(x)
+        input_effect = self.input_kernel(x)
+        dh = -self.tau_inv * h_prev + input_effect
+        h_new = h_prev + dt * dh
+        return h_new
